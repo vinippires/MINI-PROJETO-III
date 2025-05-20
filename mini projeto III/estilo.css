@@ -31,3 +31,11 @@ body {
     font-size: 1.25rem;
     min-height: 200px;
 }
+
+.detalhes-expandido {
+    background-color: #f8f9fa;
+    border-left: 3px solid #0d6efd;
+    padding: 0.5rem;
+    border-radius: 5px;
+    font-size: 0.9rem;
+}

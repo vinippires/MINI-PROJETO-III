@@ -32,7 +32,6 @@ function limparForm() {
     document.getElementById("comentarioTarefa").value = "";
     document.getElementById("prioridadeTarefa").selectedIndex = 0;
     document.getElementById("notificacaoTarefa").checked = false;
-    idEditando = null;
 }
 
 function deletarCard(id) {
@@ -51,29 +50,28 @@ function editarCard(id) {
     idEditando = id;
 }
 
-function expandir(id) {
-    const item = itens.find(item => item.id === id);
-    localStorage.setItem("tarefaSelecionada", JSON.stringify(item));
-    window.location.href = "detalhes.html";
-}
 
 function criarCard(item) {
     const card = document.createElement('div');
     card.className = 'card shadow m-2';
     card.id = "card" + item.id;
     card.style.width = '18rem';
+
     card.innerHTML = `
-        <div class="card-body">
+        <div class="card-body" onclick="detalhes(${item.id})" style="cursor: pointer;">
             <h5 class="card-title">${item.titulo}</h5>
             <h6 class="card-subtitle mb-2 text-body-secondary">Para: ${item.data}</h6>
             <h6 class="card-subtitle mb-2 text-body-secondary">Prioridade: <span class="${item.prioridade}">${item.prioridade}</span></h6>
-            <p class="card-text">${item.comentario}</p>
-            <button class="btn btn-sm btn-outline-danger" onclick="deletarCard(${item.id})"><span class="material-icons">delete</span></button>
-            <button class="btn btn-sm btn-outline-secondary" onclick="editarCard(${item.id})" data-bs-toggle="modal" data-bs-target="#exampleModal"><span class="material-icons">edit</span></button>
-            <button class="btn btn-sm btn-outline-info" onclick="expandir(${item.id})">Detalhes</button>
+        </div>
+        <div class="card-footer d-flex justify-content-between">
+            <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); expandir(${item.id})">Expandir</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); editarCard(${item.id});" data-bs-toggle="modal" data-bs-target="#exampleModal"><span class="material-icons">edit</span></button>
+            <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deletarCard(${item.id})"><span class="material-icons">delete</span></button>
         </div>`;
+    
     return card;
 }
+
 
 function atualizarLista() {
     listaCards.innerHTML = "";
@@ -106,7 +104,27 @@ function ordenarTarefas(tipo) {
 }
 
 function expandir(id) {
-  const item = itens.find(i => i.id === id);
-  localStorage.setItem("tarefaSelecionada", JSON.stringify(item));
-  window.location.href = "detalhes.html";
+    const cardBody = document.querySelector(`#card${id} .card-body`);
+    const item = itens.find(t => t.id === id);
+
+    let detalhes = cardBody.querySelector('.detalhes-expandido');
+
+    if (detalhes) {
+        detalhes.remove(); 
+    } else {
+        detalhes = document.createElement('div');
+        detalhes.className = 'detalhes-expandido mt-2';
+        detalhes.innerHTML = `
+            <hr>
+            <p><strong>Comentário:</strong> ${item.comentario || "Sem comentário."}</p>
+            <p><strong>Data de criação:</strong> ${new Date(item.dataCriacao).toLocaleString()}</p>
+        `;
+        cardBody.appendChild(detalhes);
+    }
+}
+
+function detalhes(id) {
+    const item = itens.find(i => i.id === id);
+    localStorage.setItem("tarefaSelecionada", JSON.stringify(item));
+    window.location.href = "detalhes.html";
 }
