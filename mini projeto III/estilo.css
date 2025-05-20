@@ -1,0 +1,33 @@
+body {
+    background-color: #B4CED9;
+}
+
+.Alta {
+    color: red;
+    font-weight: bold;
+}
+
+.Média {
+    color: orange;
+    font-weight: bold;
+}
+
+.Baixa {
+    color: green;
+    font-weight: bold;
+}
+
+.container-principal {
+    min-height: 80vh;
+    display: flex;
+    flex-direction: column;
+}
+
+#semTarefas {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    min-height: 200px;
+}
