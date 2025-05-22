@@ -3,53 +3,127 @@ let idEditando = null;
 const listaCards = document.getElementById("listaCards");
 const aviso = document.getElementById("semTarefas");
 
+function salvarItensNoLocalStorage() {
+    localStorage.setItem("listaDeTarefas", JSON.stringify(itens));
+}
+
+function carregarItensDoLocalStorage() {
+    const itensSalvos = localStorage.getItem("listaDeTarefas");
+    if (itensSalvos) {
+        itens = JSON.parse(itensSalvos);
+    } else {
+        itens = [];
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    carregarItensDoLocalStorage();
+
+    const formNovaTarefa = document.getElementById("formNovaTarefa");
+    if (formNovaTarefa) {
+        formNovaTarefa.addEventListener("submit", function(event) {
+            event.preventDefault();
+            salvarEvento();
+        });
+    }
+    atualizarLista();
+    atualizarTextoSemTarefas();
+});
+
 function salvarEvento() {
     const titulo = document.getElementById("tituloTarefa").value;
     const data = document.getElementById("dataTarefa").value;
     const comentario = document.getElementById("comentarioTarefa").value;
     const prioridade = document.getElementById("prioridadeTarefa").value;
     const notificacao = document.getElementById("notificacaoTarefa").checked;
-    const dataCriacao = Date.now();
+    let dataCriacaoPersistence;
+
+    const errorMessageElement = document.getElementById("modalErrorMessage");
+    if (errorMessageElement) {
+        errorMessageElement.textContent = "";
+    }
 
     if (idEditando !== null) {
         const index = itens.findIndex(item => item.id === idEditando);
-        itens[index] = { id: idEditando, titulo, data, comentario, prioridade, notificacao, dataCriacao };
-        document.getElementById("card" + idEditando).remove();
+        if (index !== -1) {
+            dataCriacaoPersistence = itens[index].dataCriacao;
+            itens[index] = { id: idEditando, titulo, data, comentario, prioridade, notificacao, dataCriacao: dataCriacaoPersistence };
+            const cardAntigo = document.getElementById("card" + idEditando);
+            if (cardAntigo) {
+                 cardAntigo.remove();
+            }
+        } else {
+            console.error("Item para edição não encontrado com ID:", idEditando);
+            dataCriacaoPersistence = Date.now();
+            const id = itens.length ? (Math.max(...itens.map(i => i.id)) + 1) : 0;
+            itens.push({ id, titulo, data, comentario, prioridade, notificacao, dataCriacao: dataCriacaoPersistence });
+        }
         idEditando = null;
     } else {
-        const id = itens.length ? itens.at(-1).id + 1 : 0;
-        itens.push({ id, titulo, data, comentario, prioridade, notificacao, dataCriacao });
+        dataCriacaoPersistence = Date.now();
+        const id = itens.length ? (Math.max(...itens.map(i => i.id), -1) + 1) : 0;
+        itens.push({ id, titulo, data, comentario, prioridade, notificacao, dataCriacao: dataCriacaoPersistence });
     }
 
+    salvarItensNoLocalStorage();
     atualizarLista();
+
+    const modalElement = document.getElementById('exampleModal');
+    const modalInstance = bootstrap.Modal.getInstance(modalElement);
+    if (modalInstance) {
+        modalInstance.hide();
+    }
+
     limparForm();
     atualizarTextoSemTarefas();
 }
 
 function limparForm() {
+    const formNovaTarefa = document.getElementById("formNovaTarefa");
+    if (formNovaTarefa) {
+        formNovaTarefa.reset();
+    }
     document.getElementById("tituloTarefa").value = "";
     document.getElementById("dataTarefa").value = "";
     document.getElementById("comentarioTarefa").value = "";
     document.getElementById("prioridadeTarefa").selectedIndex = 0;
     document.getElementById("notificacaoTarefa").checked = false;
+
+    const errorMessageElement = document.getElementById("modalErrorMessage");
+    if (errorMessageElement) {
+        errorMessageElement.textContent = "";
+    }
+    idEditando = null;
 }
 
 function deletarCard(id) {
-    document.getElementById("card" + id).remove();
+    const cardParaDeletar = document.getElementById("card" + id);
+    if (cardParaDeletar) {
+        cardParaDeletar.remove();
+    }
     itens = itens.filter(item => item.id !== id);
+    salvarItensNoLocalStorage();
     atualizarTextoSemTarefas();
 }
 
 function editarCard(id) {
     const item = itens.find(item => item.id === id);
-    document.getElementById("tituloTarefa").value = item.titulo;
-    document.getElementById("dataTarefa").value = item.data;
-    document.getElementById("comentarioTarefa").value = item.comentario;
-    document.getElementById("prioridadeTarefa").value = item.prioridade;
-    document.getElementById("notificacaoTarefa").checked = item.notificacao;
-    idEditando = id;
-}
+    if (item) {
+        document.getElementById("tituloTarefa").value = item.titulo;
+        document.getElementById("dataTarefa").value = item.data;
+        document.getElementById("comentarioTarefa").value = item.comentario;
+        document.getElementById("prioridadeTarefa").value = item.prioridade;
+        document.getElementById("notificacaoTarefa").checked = item.notificacao;
+        idEditando = id;
 
+        const errorMessageElement = document.getElementById("modalErrorMessage");
+        if (errorMessageElement) {
+            errorMessageElement.textContent = "";
+        }
+    } else {
+        console.error("Tentativa de editar item não encontrado:", id);
+    }
+}
 
 function criarCard(item) {
     const card = document.createElement('div');
@@ -68,20 +142,24 @@ function criarCard(item) {
             <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); editarCard(${item.id});" data-bs-toggle="modal" data-bs-target="#exampleModal"><span class="material-icons">edit</span></button>
             <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deletarCard(${item.id})"><span class="material-icons">delete</span></button>
         </div>`;
-    
     return card;
 }
-
 
 function atualizarLista() {
     listaCards.innerHTML = "";
     itens.forEach(item => {
-        listaCards.appendChild(criarCard(item));
+        if (item) {
+            listaCards.appendChild(criarCard(item));
+        }
     });
 }
 
 function atualizarTextoSemTarefas() {
-    aviso.style.display = itens.length === 0 ? "block" : "none";
+    if (itens.length === 0) {
+        aviso.style.display = "flex";
+    } else {
+        aviso.style.display = "none";
+    }
 }
 
 function ordenarTarefas(tipo) {
@@ -107,10 +185,12 @@ function expandir(id) {
     const cardBody = document.querySelector(`#card${id} .card-body`);
     const item = itens.find(t => t.id === id);
 
+    if (!cardBody || !item) return;
+
     let detalhes = cardBody.querySelector('.detalhes-expandido');
 
     if (detalhes) {
-        detalhes.remove(); 
+        detalhes.remove();
     } else {
         detalhes = document.createElement('div');
         detalhes.className = 'detalhes-expandido mt-2';
@@ -125,6 +205,10 @@ function expandir(id) {
 
 function detalhes(id) {
     const item = itens.find(i => i.id === id);
-    localStorage.setItem("tarefaSelecionada", JSON.stringify(item));
-    window.location.href = "detalhes.html";
+    if (item) {
+        localStorage.setItem("tarefaSelecionada", JSON.stringify(item));
+        window.location.href = "detalhes.html";
+    } else {
+        console.error("Item não encontrado para detalhar:", id);
+    }
 }
